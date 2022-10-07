@@ -21,3 +21,7 @@ Optional. Specify where to download the files. If not provided the current direc
 ### --threads
 
 Optional. Number of concurrent downloads. Default is 10, and if there are less than 10 episodes in total, all episodes will be downloaded concurrently.
+
+### --force
+
+Optional. Force download episodes that already exists in the target directory. Defaults to false.

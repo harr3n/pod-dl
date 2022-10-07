@@ -19,14 +19,21 @@ const sliceIntoChunks = (arr, size) => {
 };
 
 const download = async (item) => {
-  try {
-    const path = argv.path ? argv.path : process.cwd();
-    const res = await fetch(item.enclosure.url);
-    const fileName = item.title.replace(/\//g, "");
-    await fs.promises.writeFile(
-      `${path}/${fileName}.${getFileExtension(item.enclosure.type)}`,
-      res.body
+  const saveDir = argv.path ? argv.path : process.cwd();
+  const fileName = item.title.replace(/\//g, "");
+  const ext = getFileExtension(item.enclosure.type);
+  const output = `${saveDir}/${fileName}.${ext}`;
+
+  if (!argv.force && fs.existsSync(output)) {
+    console.log(
+      `File ${fileName}.${ext} exists. Skipping. If you want to force download episodes, supply the --force flag.`
     );
+    return;
+  }
+
+  try {
+    const res = await fetch(item.enclosure.url);
+    await fs.promises.writeFile(output, res.body);
   } catch (e) {
     console.error(e);
   }
