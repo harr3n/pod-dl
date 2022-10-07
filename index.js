@@ -4,6 +4,18 @@ const Parser = require("rss-parser");
 const fs = require("fs");
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
+const cliProgress = require("cli-progress");
+const colors = require("ansi-colors");
+
+const progress = new cliProgress.SingleBar(
+  {
+    format:
+      colors.cyan("{bar}") + "| {percentage}% || {value}/{total} episodes",
+    barCompleteChar: "\u2588",
+    barIncompleteChar: "\u2591",
+  },
+  cliProgress.Presets.shades_classic
+);
 
 const argv = yargs(hideBin(process.argv)).argv;
 const parser = new Parser();
@@ -28,12 +40,14 @@ const download = async (item) => {
     console.log(
       `File ${fileName}.${ext} exists. Skipping. If you want to force download episodes, supply the --force flag.`
     );
+    progress.increment();
     return;
   }
 
   try {
     const res = await fetch(item.enclosure.url);
     await fs.promises.writeFile(output, res.body);
+    progress.increment();
   } catch (e) {
     console.error(e);
   }
@@ -87,24 +101,19 @@ const getFeedSize = (feed) => {
 };
 
 (async () => {
-  console.time("time elapsed");
   const feed = await getRssFeed(argv.url);
-
-  console.log(`Starting to download a total of ${getFeedSize(feed)}`);
+  progress.start(feed.items.length, 0);
 
   const chunks = sliceIntoChunks(
     feed.items,
     threads > feed.length ? feed.length : threads
   );
-  for (const [i, chunk] of chunks.entries()) {
+
+  for (const chunk of chunks) {
     const promises = chunk.map((item) => download(item));
     await Promise.all(promises);
-
-    const percentageDone = Math.round(((i + 1) / chunks.length) * 100);
-    console.log(`${percentageDone} %.`);
-    console.timeLog("time elapsed");
   }
 
-  console.timeEnd("time elapsed");
+  progress.stop();
   console.log("Done.");
 })();
