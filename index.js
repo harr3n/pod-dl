@@ -8,7 +8,7 @@ const { hideBin } = require("yargs/helpers");
 const argv = yargs(hideBin(process.argv)).argv;
 const parser = new Parser();
 
-const downloadsPerIteration = argv.chunkSize ? argv.chunkSize : 10;
+const threads = argv.threads ? argv.threads : 10;
 
 const sliceIntoChunks = (arr, size) => {
   const chunks = [];
@@ -85,10 +85,12 @@ const getFeedSize = (feed) => {
 
   console.log(`Starting to download a total of ${getFeedSize(feed)}`);
 
-  const chunks = sliceIntoChunks(feed.items, downloadsPerIteration);
+  const chunks = sliceIntoChunks(
+    feed.items,
+    threads > feed.length ? feed.length : threads
+  );
   for (const [i, chunk] of chunks.entries()) {
     const promises = chunk.map((item) => download(item));
-    console.log(promises.length);
     await Promise.all(promises);
 
     const percentageDone = Math.round(((i + 1) / chunks.length) * 100);
