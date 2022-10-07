@@ -1,14 +1,16 @@
 {
-  "name": "steal-pods",
-  "version": "1.0.0",
+  "name": "pod-dl",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
+  "bin": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
-    "rss-parser": "^3.12.0"
+    "rss-parser": "^3.12.0",
+    "yargs": "^17.6.0"
   }
 }
