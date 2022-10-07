@@ -1,6 +1,6 @@
-# POD-DL
+# pod-dl
 
-Quick and dirty podcast downloader
+CLI for downloading whole podcast catalogs.
 
 ## Example usage
 
