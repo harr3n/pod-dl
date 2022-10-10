@@ -2,6 +2,7 @@
 
 const Parser = require("rss-parser");
 const fs = require("fs");
+const { resolve } = require("path");
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 const cliProgress = require("cli-progress");
@@ -32,8 +33,7 @@ const sliceIntoChunks = (arr, size) => {
   return chunks;
 };
 
-const download = async (item) => {
-  const saveDir = argv.path ? argv.path : process.cwd();
+const download = async (item, saveDir) => {
   const fileName = item.title.replace(/\//g, "");
   const ext = getFileExtension(item.enclosure.type);
   const output = `${saveDir}/${fileName}.${ext}`;
@@ -47,7 +47,7 @@ const download = async (item) => {
 
   if (!argv.force && fs.existsSync(output)) {
     console.log(
-      `File ${fileName}.${ext} exists. Skipping. If you want to force download episodes, supply the --force flag.`
+      `File ${fileName}.${ext} already exists. Skipping. If you want to force download episodes, supply the --force flag.`
     );
     incrementProgress();
     return;
@@ -62,6 +62,8 @@ const download = async (item) => {
   }
 };
 
+// Shamelessly copy-pasted from
+// https://stackoverflow.com/a/18650828
 const formatBytes = (bytes, decimals = 2) => {
   if (!+bytes) return "0 Bytes";
 
@@ -88,17 +90,19 @@ const getRssFeed = async (url) => {
 };
 
 const getFileExtension = (mimeType) => {
-  return {
-    "audio/mpeg": ".mp3",
-    "audio/mp3": ".mp3",
-    "audio/flac": ".flac",
-    "audio/ogg": ".ogg",
-    "audio/vorbis": ".ogg",
-    "audio/mp4": ".m4a",
-    "audio/wav": ".wav",
-    "audio/x-wav": ".wav",
-    "audio/aac": ".aac",
-  }[mimeType];
+  return (
+    {
+      "audio/mpeg": ".mp3",
+      "audio/mp3": ".mp3",
+      "audio/flac": ".flac",
+      "audio/ogg": ".ogg",
+      "audio/vorbis": ".ogg",
+      "audio/mp4": ".m4a",
+      "audio/wav": ".wav",
+      "audio/x-wav": ".wav",
+      "audio/aac": ".aac",
+    }[mimeType] ?? ""
+  );
 };
 
 const getFeedSize = (feed) => {
@@ -109,8 +113,20 @@ const getFeedSize = (feed) => {
   return formatBytes(totalBytes);
 };
 
+const validatePath = (path) => {
+  if (!fs.existsSync(path)) {
+    throw new Error(`${path}: not found.`);
+  } else if (!fs.accessSync(path, fs.constants.R_OK | fs.constants.W_OK)) {
+    throw new Error(`${path}: permission denied.`);
+  }
+};
+
 (async () => {
+  const path = argv.path ? resolve(argv.path) : process.cwd();
+  validatePath(path);
+
   const feed = await getRssFeed(argv.url);
+
   progress.start(feed.items.length, 0, {
     downloaded: formatBytes(totalDownloaded),
     totalSize: getFeedSize(feed),
@@ -122,10 +138,9 @@ const getFeedSize = (feed) => {
   );
 
   for (const chunk of chunks) {
-    const promises = chunk.map((item) => download(item));
+    const promises = chunk.map((item) => download(item, path));
     await Promise.all(promises);
   }
 
   progress.stop();
-  console.log("Done.");
 })();
